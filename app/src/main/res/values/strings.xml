@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">Instagram Curate</string>
+    <string name="notification_channel_sync_name">Sync Notifications</string>
+    <string name="notification_channel_sync_description">Notifications related to media sync progress</string>
+    <string name="notification_sync_hashtag">Syncing #%1$s</string>
+
+    <string name="add">Add</string>
+    <string name="add_search">Add A Search</string>
+    <string name="delete">Delete</string>
+    <string name="delete_question">Delete %1$s?</string>
+    <string name="search_query">Search Query</string>
+    <string name="search_type">Search Type:</string>
+    <string name="hashtag">Hashtag</string>
+    <string name="person">Person</string>
+    <string name="error_input">Can only contain letters, numbers, and underscores (_).</string>
+
+    <string name="details">Details</string>
+    <string name="labels">Labels</string>
+</resources>
