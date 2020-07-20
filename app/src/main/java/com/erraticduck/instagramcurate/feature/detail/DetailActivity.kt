@@ -62,7 +62,7 @@ class DetailActivity : AppCompatActivity() {
                         if (resource != null) {
                             val image = InputImage.fromBitmap(resource, 0)
                             val localModel = LocalModel.Builder()
-                                .setAssetFilePath("mobilenet_v1_1.0_224_quantized_1_metadata_1.tflite")
+                                .setAssetFilePath("mobilenet_v2_1.0_224_1_metadata_1.tflite")
                                 .build()
                             val options = CustomImageLabelerOptions.Builder(localModel)
                                 .setConfidenceThreshold(.01f)
