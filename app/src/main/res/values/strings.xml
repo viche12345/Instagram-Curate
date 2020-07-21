@@ -12,7 +12,8 @@
     <string name="search_type">Search Type:</string>
     <string name="hashtag">Hashtag</string>
     <string name="person">Person</string>
-    <string name="error_input">Can only contain letters, numbers, and underscores (_).</string>
+    <string name="error_input">Can only contain letters, numbers, periods, and underscores.</string>
+    <string name="perform_ml">Perform Image Label Detection</string>
 
     <string name="details">Details</string>
     <string name="labels">Labels</string>

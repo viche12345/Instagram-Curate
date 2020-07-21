@@ -13,7 +13,10 @@ import androidx.room.ForeignKey.CASCADE
             onDelete = CASCADE
         )
     ],
-    indices = [Index(value = ["_session_id"], unique = false)]
+    indices = [
+        Index(value = ["_session_id"], unique = false),
+        Index(value = ["remote_id"], unique = true)
+    ]
 )
 data class MediaEntity(
     @ColumnInfo(name = "_session_id") val _sessionId: Long,

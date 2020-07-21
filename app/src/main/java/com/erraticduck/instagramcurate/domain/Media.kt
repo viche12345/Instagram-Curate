@@ -2,22 +2,15 @@ package com.erraticduck.instagramcurate.domain
 
 import androidx.recyclerview.widget.DiffUtil
 
-data class MediaPage(
-    val remoteId: Long?,  // ID can be null with paged responses
-    val name: String?,  // Name can be null with paged responses
-    val thumbnailUrl: String?,
-    val media: List<Media>,
-    val totalCount: Long?,
-    val nextCursor: String?
-)
-
 data class Media(
+    val localId: Long,
     val remoteId: Long,
     val timestamp: Long,
     val displayUrl: String,
     val thumbnailUrl: String,
     val caption: String,
-    val isVideo: Boolean
+    val isVideo: Boolean,
+    val labels: List<Label> = emptyList()
 ) {
     companion object {
         val DIFF_CALLBACK = object : DiffUtil.ItemCallback<Media>() {
@@ -30,3 +23,8 @@ data class Media(
         }
     }
 }
+
+data class Label(
+    val name: String,
+    val confidence: Float
+)

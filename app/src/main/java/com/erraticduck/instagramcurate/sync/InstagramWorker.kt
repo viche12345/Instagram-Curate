@@ -6,33 +6,44 @@ import android.app.NotificationManager
 import android.content.Context
 import android.graphics.drawable.Icon
 import android.util.Log
+import android.widget.Toast
 import androidx.work.*
+import com.bumptech.glide.Glide
 import com.erraticduck.instagramcurate.MainApplication
 import com.erraticduck.instagramcurate.R
 import com.erraticduck.instagramcurate.cloud.InstagramAdapter
 import com.erraticduck.instagramcurate.cloud.InstagramService
+import com.erraticduck.instagramcurate.domain.Label
 import com.erraticduck.instagramcurate.domain.Media
 import com.erraticduck.instagramcurate.domain.Session
 import com.erraticduck.instagramcurate.gateway.MediaGateway
 import com.erraticduck.instagramcurate.gateway.SessionGateway
+import com.google.mlkit.common.model.LocalModel
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.label.ImageLabeling
+import com.google.mlkit.vision.label.custom.CustomImageLabelerOptions
+import io.reactivex.Completable
+import io.reactivex.schedulers.Schedulers
 import java.io.IOException
 
-class InstagramHashtagWorker(private val context: Context, workerParams: WorkerParameters): Worker(context, workerParams) {
+class InstagramWorker(private val context: Context, workerParams: WorkerParameters): Worker(context, workerParams) {
 
     private val instagramAdapter by lazy { InstagramAdapter(InstagramService.create()) }
+    private val mediaGateway by lazy { MediaGateway(MainApplication.instance.searchSessionDatabase.mediaDao()) }
     private var notificationManager: NotificationManager? = context.getSystemService(NotificationManager::class.java)
 
     override fun doWork(): Result {
         val sessionGateway = SessionGateway(MainApplication.instance.searchSessionDatabase.sessionDao())
-        val mediaGateway = MediaGateway(MainApplication.instance.searchSessionDatabase.mediaDao())
         val sessionId = inputData.getLong(DATA_KEY_SESSION_ID, 0)
+        val performMl = inputData.getBoolean(DATA_KEY_PERFORM_ML, false)
         val session = sessionGateway.getById(sessionId) ?: throw IllegalStateException("No such session with id $sessionId")
 
-        mediaGateway.deleteBySessionId(sessionId)
+        sessionGateway.updateSync(sessionId, true)
 
-        try {
+        setForegroundAsync(createForegroundInfo(session.name))
+
+        val result = try {
             var nextCursor: String? = null
-            var current = 0
             do {
                 if (isStopped) break
                 val response = when (session.type) {
@@ -40,42 +51,72 @@ class InstagramHashtagWorker(private val context: Context, workerParams: WorkerP
                     Session.Type.PERSON -> instagramAdapter.fetchUser(session, nextCursor)
                 }
                 if (!response.isSuccessful) {
-                    Log.e(TAG, "Error ${response.code()}: ${response.message()}")
+                    val msg = "Error ${response.code()}: ${response.message()}"
+                    Log.e(TAG, msg)
+                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                     return Result.failure()
                 }
-                setForegroundAsync(createForegroundInfo(session.name))
 
                 val hashtag = response.body()!!
                 nextCursor = hashtag.nextCursor
+                hashtag.totalCount?.let {
+                    if (it > 0) {
+                        sessionGateway.updateRemoteCount(sessionId, it)
+                    }
+                }
                 for (media in hashtag.media) {
                     if (isStopped) break
-                    mediaGateway.insert(
-                        Media(
-                            media.remoteId,
-                            media.timestamp,
-                            media.displayUrl,
-                            media.thumbnailUrl,
-                            media.caption,
-                            media.isVideo
-                        ),
-                        sessionId
-                    )
-                    setForegroundAsync(createForegroundInfo(session.name,
-                        "${++current} / ${hashtag.totalCount}"))
+                    val toInsert =
+                        Media(0, media.remoteId, media.timestamp, media.displayUrl, media.thumbnailUrl, media.caption, media.isVideo)
+                    val id = mediaGateway.insert(toInsert, sessionId)
+                    if (performMl) {
+                        performMl(toInsert.copy(localId = id))
+                    }
                 }
             } while (nextCursor != null)
 
-            return Result.success()
+            Result.success()
         } catch (e: IOException) {
             Log.e(TAG, e.message, e)
-            return Result.retry()
+            Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
+            Result.retry()
         } catch (e: RuntimeException) {
             Log.e(TAG, e.message, e)
-            return Result.failure()
+            Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
+            Result.failure()
         }
+
+        sessionGateway.updateSync(sessionId, false)
+
+        return result
     }
 
-    private fun createForegroundInfo(hashtagName: String, progressText: String? = null): ForegroundInfo {
+    private fun performMl(media: Media) {
+        val target = Glide
+            .with(context)
+            .asBitmap()
+            .load(media.displayUrl)
+            .submit()
+        val bitmap = target.get()
+        val image = InputImage.fromBitmap(bitmap, 0)
+        val localModel = LocalModel.Builder()
+            .setAssetFilePath("mobilenet_v2_1.0_224_1_metadata_1.tflite")
+            .build()
+        val options = CustomImageLabelerOptions.Builder(localModel)
+            .setConfidenceThreshold(.01f)
+            .build()
+        val labeler = ImageLabeling.getClient(options)
+        labeler.process(image)
+            .addOnSuccessListener { labels ->
+                Completable.fromCallable {
+                    mediaGateway.insert(labels.map { Label(it.text, it.confidence) }, media.localId)
+                }
+                    .subscribeOn(Schedulers.io())
+                    .subscribe()
+            }
+    }
+
+    private fun createForegroundInfo(hashtagName: String): ForegroundInfo {
         val channelId = createNotificationChannel()
         val title = context.getString(R.string.notification_sync_hashtag, hashtagName)
         val cancel = context.getString(android.R.string.cancel)
@@ -83,7 +124,6 @@ class InstagramHashtagWorker(private val context: Context, workerParams: WorkerP
 
         val notification = Notification.Builder(context, channelId)
             .setContentTitle(title)
-            .setContentText(progressText)
             .setOngoing(true)
             .setSmallIcon(Icon.createWithResource(context, R.drawable.ic_launcher_foreground))
             .addAction(Notification.Action.Builder(null, cancel, intent).build())
@@ -105,12 +145,15 @@ class InstagramHashtagWorker(private val context: Context, workerParams: WorkerP
     }
 
     companion object {
-        val TAG = InstagramHashtagWorker::class.java.simpleName
+        val TAG = InstagramWorker::class.java.simpleName
         const val DATA_KEY_SESSION_ID = "KEY_SESSION_ID"
+        const val DATA_KEY_PERFORM_ML = "KEY_PERFORM_ML"
 
-        fun enqueue(workManager: WorkManager, sessionId: Long) =
-            OneTimeWorkRequestBuilder<InstagramHashtagWorker>().setInputData(
-                Data.Builder().putLong(DATA_KEY_SESSION_ID, sessionId).build()
+        fun enqueue(workManager: WorkManager, sessionId: Long, performMl: Boolean) =
+            OneTimeWorkRequestBuilder<InstagramWorker>().setInputData(
+                Data.Builder().putLong(DATA_KEY_SESSION_ID, sessionId)
+                    .putBoolean(DATA_KEY_PERFORM_ML, performMl)
+                    .build()
             )
                 .addTag(TAG)
                 .build().run(workManager::enqueue)

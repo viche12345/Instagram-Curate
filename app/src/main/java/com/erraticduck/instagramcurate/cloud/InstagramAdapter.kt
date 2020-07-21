@@ -55,6 +55,7 @@ fun InstagramService.UserNode.toDomain() = MediaPage(id, username, thumbnailUrl,
 )
 
 fun InstagramService.MediaNode.toDomain() = Media(
+    0,
     id,
     timestamp,
     displayUrl,

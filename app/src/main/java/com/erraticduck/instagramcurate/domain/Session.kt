@@ -8,6 +8,9 @@ data class Session(
     val name: String,
     val type: Type,
     val id: Long = -1,
+    val localCount: Int = 0,
+    val remoteCount: Int = 0,
+    val syncing: Boolean = false,
     var remoteId: Long? = null
 ) {
 

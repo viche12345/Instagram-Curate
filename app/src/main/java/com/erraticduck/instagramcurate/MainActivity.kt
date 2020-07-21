@@ -16,7 +16,7 @@ import androidx.work.WorkManager
 import com.erraticduck.instagramcurate.domain.Session
 import com.erraticduck.instagramcurate.feature.grid.GridActivity
 import com.erraticduck.instagramcurate.gateway.SessionGateway
-import com.erraticduck.instagramcurate.sync.InstagramHashtagWorker
+import com.erraticduck.instagramcurate.sync.InstagramWorker
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 
@@ -56,12 +56,13 @@ class MainActivity : AppCompatActivity() {
             val title = view.findViewById<TextView>(R.id.title)
             val subtitle = view.findViewById<TextView>(R.id.subtitle)
             title.text = session.name
-            subtitle.text = view.context.getString(session.type.displayName)
+            subtitle.text = "${view.context.getString(session.type.displayName)}  -  ${session.localCount} / ${session.remoteCount}"
+            view.findViewById<View>(R.id.progress).visibility = if (session.syncing) View.VISIBLE else View.INVISIBLE
             view.setOnLongClickListener {
                 MaterialAlertDialogBuilder(view.context)
                     .setMessage(view.context.getString(R.string.delete_question, session.name))
                     .setPositiveButton(R.string.delete) { _, _ ->
-                        WorkManager.getInstance(view.context).cancelAllWorkByTag(InstagramHashtagWorker.TAG)
+                        WorkManager.getInstance(view.context).cancelAllWorkByTag(InstagramWorker.TAG)
                         lifecycleScope.launch {
                             gateway.deleteSession(session.id)
                         }

@@ -6,13 +6,15 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.erraticduck.instagramcurate.data.dao.MediaEntityDao
 import com.erraticduck.instagramcurate.data.dao.SearchSessionDao
+import com.erraticduck.instagramcurate.data.entity.LabelEntity
 import com.erraticduck.instagramcurate.data.entity.MediaEntity
 import com.erraticduck.instagramcurate.data.entity.SearchSessionEntity
 
 @Database(
     entities = [
         SearchSessionEntity::class,
-        MediaEntity::class
+        MediaEntity::class,
+        LabelEntity::class
     ],
     version = 1
 )

@@ -87,7 +87,7 @@ interface InstagramService {
 
     data class Edges<T>(
         val edges: List<Edge<T>>,
-        val count: Long?,
+        val count: Int?,    // Can be null with paged responses
         @SerializedName("page_info") val pageInfo: PageInfo?
     )
 

@@ -7,7 +7,9 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "sessions")
 data class SearchSessionEntity(
     val type: String,
-    val name: String
+    val name: String,
+    @ColumnInfo(name = "remote_count") val remoteCount: Int,
+    val syncing: Boolean
 ) {
 
     @PrimaryKey(autoGenerate = true)

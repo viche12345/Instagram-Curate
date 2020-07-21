@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.RadioGroup
 import androidx.core.widget.doAfterTextChanged
@@ -13,7 +14,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.work.WorkManager
 import com.erraticduck.instagramcurate.domain.Session
 import com.erraticduck.instagramcurate.gateway.SessionGateway
-import com.erraticduck.instagramcurate.sync.InstagramHashtagWorker
+import com.erraticduck.instagramcurate.sync.InstagramWorker
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.textfield.TextInputLayout
@@ -46,6 +47,7 @@ class AddSessionFragment : BottomSheetDialogFragment() {
         }
 
         searchType = view.findViewById(R.id.search_type)
+        val performMlCheckBox = view.findViewById<CheckBox>(R.id.perform_ml)
         view.findViewById<View>(R.id.btn_add).setOnClickListener {
             if (isValid()) {
                 viewLifecycleOwner.lifecycleScope.launch {
@@ -60,7 +62,7 @@ class AddSessionFragment : BottomSheetDialogFragment() {
                         )
                     )
 
-                    InstagramHashtagWorker.enqueue(WorkManager.getInstance(view.context), id)
+                    InstagramWorker.enqueue(WorkManager.getInstance(view.context), id, performMlCheckBox.isChecked)
                 }
                 dismiss()
             }

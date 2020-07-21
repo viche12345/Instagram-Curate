@@ -2,7 +2,10 @@ package com.erraticduck.instagramcurate.gateway
 
 import androidx.lifecycle.Transformations
 import com.erraticduck.instagramcurate.data.dao.MediaEntityDao
+import com.erraticduck.instagramcurate.data.dao.MediaEntityWithLabels
+import com.erraticduck.instagramcurate.data.entity.LabelEntity
 import com.erraticduck.instagramcurate.data.entity.MediaEntity
+import com.erraticduck.instagramcurate.domain.Label
 import com.erraticduck.instagramcurate.domain.Media
 
 class MediaGateway(private val mediaEntityDao: MediaEntityDao) {
@@ -15,8 +18,22 @@ class MediaGateway(private val mediaEntityDao: MediaEntityDao) {
 
     fun insert(media: Media, sessionId: Long) = mediaEntityDao.insert(media.toEntity(sessionId))
 
-    fun deleteBySessionId(sessionId: Long) = mediaEntityDao.deleteBySessionId(sessionId)
+    fun insert(labels: List<Label>, mediaId: Long) = mediaEntityDao.insert(labels.map { it.toEntity(mediaId) })
+
 }
 
-fun MediaEntity.toDomain() = Media(remoteId, createdAt, displayUrl, thumbnailUrl, caption, isVideo)
-fun Media.toEntity(sessionId: Long) = MediaEntity(sessionId, remoteId, thumbnailUrl, displayUrl, caption, timestamp, isVideo)
+fun MediaEntityWithLabels.toDomain() = Media(
+    media.id,
+    media.remoteId,
+    media.createdAt,
+    media.displayUrl,
+    media.thumbnailUrl,
+    media.caption,
+    media.isVideo,
+    labels.map { entity -> entity.toDomain() }
+)
+fun Media.toEntity(sessionId: Long) =
+    MediaEntity(sessionId, remoteId, thumbnailUrl, displayUrl, caption, timestamp, isVideo)
+
+fun LabelEntity.toDomain() = Label(name, confidence)
+fun Label.toEntity(mediaId: Long) = LabelEntity(mediaId, name, confidence)
