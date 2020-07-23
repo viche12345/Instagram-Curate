@@ -101,7 +101,7 @@ class InstagramWorker(private val context: Context, workerParams: WorkerParamete
 
             toInsert.forEach {
                 val id = mediaGateway.insert(it, sessionId)
-                if (performMl && !it.isVideo) {
+                if (performMl) {
                     performMl(it.copy(localId = id))
                 }
             }

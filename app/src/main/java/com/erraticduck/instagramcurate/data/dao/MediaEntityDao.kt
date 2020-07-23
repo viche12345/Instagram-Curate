@@ -9,10 +9,24 @@ import com.erraticduck.instagramcurate.data.entity.MediaEntity
 interface MediaEntityDao {
 
     @Transaction
-    @Query("""SELECT * FROM media 
-        WHERE _session_id=:id
+    @Query("""
+        SELECT * FROM media
+        WHERE 
+          _session_id=:id AND
+          EXISTS(
+            SELECT 1 FROM labels
+            WHERE 
+            CASE
+              WHEN :labelFilterEnabled
+                THEN name IN (:labelFilterBy)
+              ELSE 1
+            END
+            AND media._id = _media_id
+            )
         ORDER BY created_at DESC""")
-    fun getAllBySessionId(id: Long): LiveData<List<MediaEntityWithLabels>>
+    fun getAllBySessionId(id: Long,
+                          labelFilterBy: List<String>,
+                          labelFilterEnabled: Boolean = labelFilterBy.isNotEmpty()): LiveData<List<MediaEntityWithLabels>>
 
     @Transaction
     @Query("SELECT * FROM media WHERE remote_id=:id")

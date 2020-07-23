@@ -3,12 +3,12 @@ package com.erraticduck.instagramcurate.feature.grid
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.*
+import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -18,7 +18,7 @@ import com.erraticduck.instagramcurate.R
 import com.erraticduck.instagramcurate.domain.Media
 import com.erraticduck.instagramcurate.feature.detail.DetailActivity
 import com.erraticduck.instagramcurate.gateway.MediaGateway
-import kotlinx.coroutines.launch
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class GridActivity : AppCompatActivity() {
 
@@ -26,6 +26,10 @@ class GridActivity : AppCompatActivity() {
 
     private val sessionId: Long
         get() = intent.getLongExtra(EXTRA_SESSION_ID, 0)
+
+    private lateinit var viewModel: GridViewModel
+    private val onDataChanged = Observer<List<Media>> { viewModel.media.value = it }
+    private lateinit var currentSource: LiveData<List<Media>>
 
     companion object {
         const val EXTRA_SESSION_ID = "EXTRA_SESSION_ID"
@@ -40,21 +44,82 @@ class GridActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_grid)
-        setSupportActionBar(findViewById(R.id.toolbar))
-        intent.getStringExtra(EXTRA_TITLE)?.let { supportActionBar?.title = it }
+        setUpToolbar()
 
-        val model = ViewModelProvider(this).get<GridViewModel>()
-        mediaGateway.getAllBySessionId(sessionId).observe(this, Observer { model.media.value = it })
+        // Initialize labels
+        mediaGateway.getAllBySessionId(sessionId, emptyList()).observe(this, Observer {
+            viewModel.labelCountMap.clear()
+            it.forEach { media ->
+                media.labels.forEach { label ->
+                    viewModel.labelCountMap[label.name] = viewModel.labelCountMap[label.name]?.inc() ?: 1
+                }
+            }
+            viewModel.sortedLabels = viewModel.labelCountMap
+                .toList()
+                .sortedByDescending { ( _, value) -> value }
+                .toMap()
+                .keys
+                .toTypedArray()
+        })
+
+        viewModel = ViewModelProvider(this).get()
+        currentSource = mediaGateway.getAllBySessionId(sessionId, emptyList()).apply { observe(this@GridActivity, onDataChanged) }
         val adapter = GridAdapter()
-        model.media.observe(this, Observer { adapter.submitList(it) })
+        viewModel.media.observe(this, Observer { adapter.submitList(it) })
 
         val grid = findViewById<RecyclerView>(R.id.grid)
         grid.adapter = adapter
         grid.layoutManager = GridLayoutManager(this, 3)
     }
 
+    private fun setUpToolbar() {
+        findViewById<Toolbar>(R.id.toolbar).apply {
+            title = intent.getStringExtra(EXTRA_TITLE)
+            setNavigationOnClickListener { finish() }
+            setOnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    R.id.filter -> {
+                        MaterialAlertDialogBuilder(this@GridActivity)
+                            .setTitle(R.string.filter)
+                            .setMultiChoiceItems(viewModel.sortedLabels,
+                                viewModel.sortedLabels.map { viewModel.checkedLabels.contains(it) }.toBooleanArray()
+                            )
+                            { _, which, isChecked ->
+                                if (isChecked) {
+                                    viewModel.checkedLabels.add(viewModel.sortedLabels[which])
+                                } else {
+                                    viewModel.checkedLabels.remove(viewModel.sortedLabels[which])
+                                }
+                            }
+                            .setNegativeButton(android.R.string.cancel) { _, _ -> }
+                            .setNeutralButton(R.string.clear_filters) { _, _ ->
+                                viewModel.checkedLabels.clear()
+                                refreshData()
+                            }
+                            .setPositiveButton(R.string.apply) { _, _ ->
+                                refreshData()
+                            }
+                            .show()
+                        true
+                    }
+                    else -> false
+                }
+            }
+        }
+    }
+
+    private fun refreshData() {
+        currentSource.removeObserver(onDataChanged)
+        currentSource = mediaGateway.getAllBySessionId(sessionId, viewModel.checkedLabels.toList()).apply {
+            observe(this@GridActivity, onDataChanged)
+        }
+    }
+
     class GridViewModel : ViewModel() {
         val media = MutableLiveData<List<Media>>()
+        val labelCountMap = hashMapOf<String, Int>()
+        var sortedLabels: Array<String> = emptyArray()
+        var checkedLabels = mutableSetOf<String>()
     }
 
     class GridAdapter: ListAdapter<Media, GridViewHolder>(Media.DIFF_CALLBACK) {
