@@ -25,15 +25,17 @@ class MediaGateway(private val mediaEntityDao: MediaEntityDao) {
 fun MediaEntityWithLabels.toDomain() = Media(
     media.id,
     media.remoteId,
+    media.shortcode,
     media.createdAt,
     media.displayUrl,
     media.thumbnailUrl,
     media.caption,
     media.isVideo,
+    false,
     labels.map { entity -> entity.toDomain() }
 )
 fun Media.toEntity(sessionId: Long) =
-    MediaEntity(sessionId, remoteId, thumbnailUrl, displayUrl, caption, timestamp, isVideo)
+    MediaEntity(sessionId, remoteId, shortcode, thumbnailUrl, displayUrl, caption, timestamp, isVideo)
 
 fun LabelEntity.toDomain() = Label(name, confidence)
 fun Label.toEntity(mediaId: Long) = LabelEntity(mediaId, name, confidence)

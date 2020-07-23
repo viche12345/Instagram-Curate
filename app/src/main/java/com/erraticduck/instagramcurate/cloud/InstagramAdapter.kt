@@ -40,6 +40,22 @@ class InstagramAdapter(private val instagramService: InstagramService) {
             Response.error(response.code(), response.errorBody() ?: ResponseBody.create(null, ""))
         }
     }
+
+    fun fetchShortcode(code: String): Response<List<Media>> {
+        val response = instagramService.fetchShortcode(code).execute()
+        return if (response.isSuccessful) {
+            val shortcode = response.body()?.data?.shortcode
+            Response.success(shortcode?.sidecarEdges?.edges?.let { edges ->
+                if (edges.isNotEmpty()) {
+                    edges.map { it.node.toDomain(shortcode.captionEdges.toCaptionString(), shortcode.timestamp) }
+                } else {
+                    listOf(shortcode.toDomain())
+                }
+            })
+        } else {
+            Response.error(response.code(), response.errorBody() ?: ResponseBody.create(null, ""))
+        }
+    }
 }
 
 fun InstagramService.HashTagNode.toDomain() = MediaPage(id, name, thumbnailUrl,
@@ -54,12 +70,17 @@ fun InstagramService.UserNode.toDomain() = MediaPage(id, username, thumbnailUrl,
     mediaEdges.pageInfo?.let { if (it.hasNextPage) it.endCursor else null }
 )
 
-fun InstagramService.MediaNode.toDomain() = Media(
+fun InstagramService.MediaNode.toDomain(captionOverride: String? = null, timestampOverride: Long? = null) = Media(
     0,
     id,
-    timestamp,
+    shortcode,
+    timestampOverride ?: timestamp,
     displayUrl,
     thumbnailUrl,
-    if (captionEdges.edges.isNotEmpty()) captionEdges.edges[0].node.text else "",
-    isVideo
+    captionOverride ?: if (captionEdges?.edges?.isNotEmpty() == true) captionEdges.edges[0].node.text else "",
+    isVideo,
+    typeName == "GraphSidecar"
 )
+
+fun InstagramService.Edges<InstagramService.CaptionNode>?.toCaptionString() =
+    if (this?.edges?.isNotEmpty() == true) edges[0].node.text else ""

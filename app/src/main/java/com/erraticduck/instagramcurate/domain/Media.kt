@@ -5,11 +5,13 @@ import androidx.recyclerview.widget.DiffUtil
 data class Media(
     val localId: Long,
     val remoteId: Long,
+    val shortcode: String,
     val timestamp: Long,
     val displayUrl: String,
-    val thumbnailUrl: String,
+    val thumbnailUrl: String?,
     val caption: String,
     val isVideo: Boolean,
+    val hasSidecar : Boolean = false,
     val labels: List<Label> = emptyList()
 ) {
     companion object {

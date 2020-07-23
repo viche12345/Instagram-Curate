@@ -21,7 +21,8 @@ import androidx.room.ForeignKey.CASCADE
 data class MediaEntity(
     @ColumnInfo(name = "_session_id") val _sessionId: Long,
     @ColumnInfo(name = "remote_id") val remoteId: Long,
-    @ColumnInfo(name = "thumbnail_url") val thumbnailUrl: String,
+    val shortcode: String,
+    @ColumnInfo(name = "thumbnail_url") val thumbnailUrl: String?,
     @ColumnInfo(name = "display_url") val displayUrl: String,
     val caption: String,
     @ColumnInfo(name = "created_at") val createdAt: Long,

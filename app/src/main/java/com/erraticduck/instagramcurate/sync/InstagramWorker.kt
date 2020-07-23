@@ -15,6 +15,7 @@ import com.erraticduck.instagramcurate.cloud.InstagramAdapter
 import com.erraticduck.instagramcurate.cloud.InstagramService
 import com.erraticduck.instagramcurate.domain.Label
 import com.erraticduck.instagramcurate.domain.Media
+import com.erraticduck.instagramcurate.domain.MediaPage
 import com.erraticduck.instagramcurate.domain.Session
 import com.erraticduck.instagramcurate.gateway.MediaGateway
 import com.erraticduck.instagramcurate.gateway.SessionGateway
@@ -57,22 +58,14 @@ class InstagramWorker(private val context: Context, workerParams: WorkerParamete
                     return Result.failure()
                 }
 
-                val hashtag = response.body()!!
-                nextCursor = hashtag.nextCursor
-                hashtag.totalCount?.let {
+                val mediaPage = response.body()!!
+                nextCursor = mediaPage.nextCursor
+                mediaPage.totalCount?.let {
                     if (it > 0) {
                         sessionGateway.updateRemoteCount(sessionId, it)
                     }
                 }
-                for (media in hashtag.media) {
-                    if (isStopped) break
-                    val toInsert =
-                        Media(0, media.remoteId, media.timestamp, media.displayUrl, media.thumbnailUrl, media.caption, media.isVideo)
-                    val id = mediaGateway.insert(toInsert, sessionId)
-                    if (performMl) {
-                        performMl(toInsert.copy(localId = id))
-                    }
-                }
+                handlePage(mediaPage, sessionId, performMl)
             } while (nextCursor != null)
 
             Result.success()
@@ -89,6 +82,30 @@ class InstagramWorker(private val context: Context, workerParams: WorkerParamete
         sessionGateway.updateSync(sessionId, false)
 
         return result
+    }
+
+    private fun handlePage(page: MediaPage, sessionId: Long, performMl: Boolean) {
+        for (media in page.media) {
+            if (isStopped) break
+
+            val toInsert = if (media.hasSidecar) {
+                val response = instagramAdapter.fetchShortcode(media.shortcode)
+                if (response.isSuccessful) {
+                    response.body() ?: listOf(media)
+                } else {
+                    listOf(media)
+                }
+            } else {
+                listOf(media)
+            }
+
+            toInsert.forEach {
+                val id = mediaGateway.insert(it, sessionId)
+                if (performMl && !it.isVideo) {
+                    performMl(it.copy(localId = id))
+                }
+            }
+        }
     }
 
     private fun performMl(media: Media) {

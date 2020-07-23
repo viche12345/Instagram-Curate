@@ -71,7 +71,7 @@ class GridActivity : AppCompatActivity() {
             val imageView = view.findViewById<ImageView>(R.id.imageView)
             Glide
                 .with(view)
-                .load(media.thumbnailUrl)
+                .load(media.thumbnailUrl ?: media.displayUrl)
                 .centerCrop()
                 .into(imageView)
             view.setOnClickListener {

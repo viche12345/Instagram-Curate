@@ -14,7 +14,7 @@ interface InstagramService {
     @GET("/explore/tags/{name}/?__a=1")
     fun fetchHashTag(@Path("name") name: String): Call<HashTagFirstResponse>
 
-    @GET("/graphql/query/?query_hash=298b92c8d7cad703f7565aa892ede943")
+    @GET("/graphql/query/?query_hash=c769cb6c71b24c8a86590b22402fda50")
     fun loadMoreHashTag(@Query("variables") variables: HashTagVariables): Call<HashTagLoadMoreResponse>
 
     @GET("/{name}/?__a=1")
@@ -22,6 +22,9 @@ interface InstagramService {
 
     @GET("/graphql/query/?query_hash=472f257a40c653c64c666ce877d59d2b")
     fun loadMoreUser(@Query("variables") variables: UserVariables): Call<UserLoadMoreResponse>
+
+    @GET("/p/{code}/?__a=1")
+    fun fetchShortcode(@Path("code") code: String): Call<ShortcodeResponse>
 
     interface Response<T> {
         var data: T
@@ -60,6 +63,14 @@ interface InstagramService {
         val user: UserNode
     )
 
+    data class ShortcodeResponse(
+        @SerializedName("graphql") val data: ShortcodeData
+    )
+
+    data class ShortcodeData(
+        @SerializedName("shortcode_media") val shortcode: MediaNode
+    )
+
     data class UserNode(
         val id: Long?,  // This field can be null with paged responses
         val username: String?,  // Same here
@@ -69,10 +80,13 @@ interface InstagramService {
 
     data class MediaNode(
         val id: Long,
+        val shortcode: String,
+        @SerializedName("__typename") val typeName: String,
         @SerializedName("taken_at_timestamp") val timestamp: Long,
         @SerializedName("display_url") val displayUrl: String,
-        @SerializedName("thumbnail_src") val thumbnailUrl: String,
-        @SerializedName("edge_media_to_caption") val captionEdges: Edges<CaptionNode>,
+        @SerializedName("thumbnail_src") val thumbnailUrl: String?,
+        @SerializedName("edge_media_to_caption") val captionEdges: Edges<CaptionNode>?,
+        @SerializedName("edge_sidecar_to_children") val sidecarEdges: Edges<MediaNode>?,
         @SerializedName("is_video") val isVideo: Boolean
     )
 
