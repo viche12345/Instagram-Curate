@@ -32,9 +32,9 @@ class DetailActivity : AppCompatActivity() {
         setContentView(R.layout.activity_detail)
         setSupportActionBar(findViewById(R.id.toolbar))
         supportActionBar?.title = getString(R.string.details)
-        mediaGateway.getByRemoteId(mediaId).observe(this, Observer {
+        mediaGateway.getByRemoteId(mediaId).observe(this, Observer { media ->
             val stringBuilder = StringBuilder()
-            for (label in it.labels) {
+            for (label in media.labels) {
                 stringBuilder.append("${round(label.confidence * 100)}%")
                 stringBuilder.append('\t')
                 stringBuilder.append(label.name)
@@ -45,8 +45,14 @@ class DetailActivity : AppCompatActivity() {
             val imageView = findViewById<ImageView>(R.id.imageView)
             Glide
                 .with(imageView)
-                .load(it.displayUrl)
+                .load(media.displayUrl)
                 .into(imageView)
+
+            if (media.isVideo) {
+                imageView.setOnClickListener {
+                    startActivity(VideoActivity.newIntent(this, media.shortcode))
+                }
+            }
         })
     }
 }

@@ -10,29 +10,29 @@ interface MediaEntityDao {
 
     @Transaction
     @Query("""
-        SELECT * FROM media
+        SELECT media.* FROM media
+        LEFT JOIN labels label ON media._id = label._media_id
         WHERE 
-          _session_id=:id AND
-          EXISTS(
-            SELECT 1 FROM labels
-            WHERE 
-            CASE
-              WHEN :labelFilterEnabled
-                THEN name IN (:labelFilterBy)
-              ELSE 1
-            END
-            AND media._id = _media_id
-            )
-        ORDER BY created_at DESC""")
+          CASE WHEN :labelFilterEnabled THEN label.name IN (:labelFilterBy) ELSE 1 END
+          AND _session_id=:id
+          AND is_video <> CASE WHEN :videosOnly THEN 0 ELSE 2 END
+        GROUP BY media._id
+        ORDER BY
+          CASE WHEN :ascendingOrder THEN created_at END ASC,
+          CASE WHEN NOT :ascendingOrder THEN created_at END DESC
+        """)
     fun getAllBySessionId(id: Long,
                           labelFilterBy: List<String>,
-                          labelFilterEnabled: Boolean = labelFilterBy.isNotEmpty()): LiveData<List<MediaEntityWithLabels>>
+                          videosOnly: Boolean,
+                          ascendingOrder: Boolean,
+                          labelFilterEnabled: Boolean = labelFilterBy.isNotEmpty()
+    ): LiveData<List<MediaEntityWithLabels>>
 
     @Transaction
     @Query("SELECT * FROM media WHERE remote_id=:id")
     fun getByRemoteId(id: Long): LiveData<MediaEntityWithLabels>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun insert(entity: MediaEntity): Long
 
     @Insert

@@ -10,8 +10,11 @@ import com.erraticduck.instagramcurate.domain.Media
 
 class MediaGateway(private val mediaEntityDao: MediaEntityDao) {
 
-    fun getAllBySessionId(sessionId: Long, filterByLabels: List<String>) =
-        Transformations.map(mediaEntityDao.getAllBySessionId(sessionId, filterByLabels)) {
+    fun getAllBySessionId(sessionId: Long,
+                          filterByLabels: List<String> = emptyList(),
+                          showVideosOnly: Boolean = false,
+                          ascendingOrder: Boolean = false) =
+        Transformations.map(mediaEntityDao.getAllBySessionId(sessionId, filterByLabels, showVideosOnly, ascendingOrder)) {
         it.map { entity -> entity.toDomain() }
     }
 

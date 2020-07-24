@@ -87,7 +87,8 @@ interface InstagramService {
         @SerializedName("thumbnail_src") val thumbnailUrl: String?,
         @SerializedName("edge_media_to_caption") val captionEdges: Edges<CaptionNode>?,
         @SerializedName("edge_sidecar_to_children") val sidecarEdges: Edges<MediaNode>?,
-        @SerializedName("is_video") val isVideo: Boolean
+        @SerializedName("is_video") val isVideo: Boolean,
+        @SerializedName("video_url") val videoUrl: String?
     )
 
     data class CaptionNode(

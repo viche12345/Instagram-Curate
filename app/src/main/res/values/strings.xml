@@ -18,6 +18,8 @@
     <string name="details">Details</string>
     <string name="labels">Labels</string>
     <string name="filter">Filter</string>
+    <string name="filter_videos">Show Videos Only</string>
     <string name="clear_filters">Clear Filters</string>
     <string name="apply">Apply</string>
+    <string name="reverse_order">Reverse Order</string>
 </resources>

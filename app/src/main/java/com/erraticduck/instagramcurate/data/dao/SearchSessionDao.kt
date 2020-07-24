@@ -6,18 +6,18 @@ import com.erraticduck.instagramcurate.data.entity.SearchSessionEntity
 
 @Dao
 interface SearchSessionDao {
-    @Query("""SELECT s._id, type, name, remote_count, syncing, count(m.remote_id) AS media_count
+    @Query("""SELECT s.*, count(m.remote_id) AS media_count
         FROM sessions s
         LEFT JOIN media m ON s._id = m._session_id
-        GROUP BY type, name, remote_count, syncing
+        GROUP BY s._id
         """)
     fun getAll(): LiveData<List<SearchSessionEntityWithMediaCount>>
 
-    @Query("""SELECT s._id, type, name, remote_count, syncing, count(m.remote_id) AS media_count
+    @Query("""SELECT s.*, count(m.remote_id) AS media_count
         FROM sessions s
         LEFT JOIN media m ON s._id = m._session_id
         WHERE s._id=:id
-        GROUP BY type, name, remote_count, syncing
+        GROUP BY s._id
         """)
     fun getById(id: Long): SearchSessionEntityWithMediaCount?
 

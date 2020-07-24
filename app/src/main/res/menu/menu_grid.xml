@@ -3,6 +3,16 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
+        android:id="@+id/filter_videos_switch"
+        android:title="@string/filter_videos"
+        android:checkable="true"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/reverse_order_switch"
+        android:title="@string/reverse_order"
+        android:checkable="true"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/filter"
         android:icon="@drawable/ic_filter"
         android:title="@string/filter"

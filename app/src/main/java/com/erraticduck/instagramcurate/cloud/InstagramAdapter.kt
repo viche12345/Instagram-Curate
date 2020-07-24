@@ -56,6 +56,16 @@ class InstagramAdapter(private val instagramService: InstagramService) {
             Response.error(response.code(), response.errorBody() ?: ResponseBody.create(null, ""))
         }
     }
+
+    fun fetchVideoUrl(shortcode: String): Response<String> {
+        val response = instagramService.fetchShortcode(shortcode).execute()
+        return if (response.isSuccessful) {
+            val responseShortcode = response.body()?.data?.shortcode
+            Response.success(responseShortcode?.videoUrl)
+        } else {
+            Response.error(response.code(), response.errorBody() ?: ResponseBody.create(null, ""))
+        }
+    }
 }
 
 fun InstagramService.HashTagNode.toDomain() = MediaPage(id, name, thumbnailUrl,

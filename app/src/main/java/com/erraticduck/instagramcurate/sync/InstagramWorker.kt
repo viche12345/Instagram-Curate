@@ -5,6 +5,8 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.graphics.drawable.Icon
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.work.*
@@ -32,6 +34,7 @@ class InstagramWorker(private val context: Context, workerParams: WorkerParamete
     private val instagramAdapter by lazy { InstagramAdapter(InstagramService.create()) }
     private val mediaGateway by lazy { MediaGateway(MainApplication.instance.searchSessionDatabase.mediaDao()) }
     private var notificationManager: NotificationManager? = context.getSystemService(NotificationManager::class.java)
+    private val handler = Handler(Looper.getMainLooper())
 
     override fun doWork(): Result {
         val sessionGateway = SessionGateway(MainApplication.instance.searchSessionDatabase.sessionDao())
@@ -54,7 +57,7 @@ class InstagramWorker(private val context: Context, workerParams: WorkerParamete
                 if (!response.isSuccessful) {
                     val msg = "Error ${response.code()}: ${response.message()}"
                     Log.e(TAG, msg)
-                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                    showToastOnMainThread(msg)
                     return Result.failure()
                 }
 
@@ -71,11 +74,11 @@ class InstagramWorker(private val context: Context, workerParams: WorkerParamete
             Result.success()
         } catch (e: IOException) {
             Log.e(TAG, e.message, e)
-            Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
+            showToastOnMainThread(e.message ?: e.toString())
             Result.retry()
         } catch (e: RuntimeException) {
             Log.e(TAG, e.message, e)
-            Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
+            showToastOnMainThread(e.message ?: e.toString())
             Result.failure()
         }
 
@@ -136,14 +139,11 @@ class InstagramWorker(private val context: Context, workerParams: WorkerParamete
     private fun createForegroundInfo(hashtagName: String): ForegroundInfo {
         val channelId = createNotificationChannel()
         val title = context.getString(R.string.notification_sync_hashtag, hashtagName)
-        val cancel = context.getString(android.R.string.cancel)
-        val intent = WorkManager.getInstance(context).createCancelPendingIntent(id)
 
         val notification = Notification.Builder(context, channelId)
             .setContentTitle(title)
             .setOngoing(true)
             .setSmallIcon(Icon.createWithResource(context, R.drawable.ic_launcher_foreground))
-            .addAction(Notification.Action.Builder(null, cancel, intent).build())
             .build()
 
         return ForegroundInfo(R.string.notification_sync_hashtag, notification)
@@ -161,6 +161,10 @@ class InstagramWorker(private val context: Context, workerParams: WorkerParamete
         return id
     }
 
+    private fun showToastOnMainThread(text: String) {
+        handler.post { Toast.makeText(context, text, Toast.LENGTH_SHORT).show() }
+    }
+
     companion object {
         val TAG = InstagramWorker::class.java.simpleName
         const val DATA_KEY_SESSION_ID = "KEY_SESSION_ID"
@@ -172,7 +176,9 @@ class InstagramWorker(private val context: Context, workerParams: WorkerParamete
                     .putBoolean(DATA_KEY_PERFORM_ML, performMl)
                     .build()
             )
-                .addTag(TAG)
+                .addTag(getTagWithSessionId(sessionId))
                 .build().run(workManager::enqueue)
+
+        fun getTagWithSessionId(sessionId: Long) = TAG + "_$sessionId"
     }
 }

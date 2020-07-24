@@ -29,7 +29,7 @@ class GridActivity : AppCompatActivity() {
 
     private lateinit var viewModel: GridViewModel
     private val onDataChanged = Observer<List<Media>> { viewModel.media.value = it }
-    private lateinit var currentSource: LiveData<List<Media>>
+    private var currentSource: LiveData<List<Media>>? = null
 
     companion object {
         const val EXTRA_SESSION_ID = "EXTRA_SESSION_ID"
@@ -47,7 +47,7 @@ class GridActivity : AppCompatActivity() {
         setUpToolbar()
 
         // Initialize labels
-        mediaGateway.getAllBySessionId(sessionId, emptyList()).observe(this, Observer {
+        mediaGateway.getAllBySessionId(sessionId).observe(this, Observer {
             viewModel.labelCountMap.clear()
             it.forEach { media ->
                 media.labels.forEach { label ->
@@ -63,7 +63,7 @@ class GridActivity : AppCompatActivity() {
         })
 
         viewModel = ViewModelProvider(this).get()
-        currentSource = mediaGateway.getAllBySessionId(sessionId, emptyList()).apply { observe(this@GridActivity, onDataChanged) }
+        refreshData()
         val adapter = GridAdapter()
         viewModel.media.observe(this, Observer { adapter.submitList(it) })
 
@@ -72,9 +72,21 @@ class GridActivity : AppCompatActivity() {
         grid.layoutManager = GridLayoutManager(this, 3)
     }
 
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_grid, menu)
+        return true
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
+        menu?.findItem(R.id.filter_videos_switch)?.isChecked = viewModel.showVideosOnly
+        menu?.findItem(R.id.reverse_order_switch)?.isChecked = viewModel.ascendingOrder
+        return true
+    }
+
     private fun setUpToolbar() {
         findViewById<Toolbar>(R.id.toolbar).apply {
-            title = intent.getStringExtra(EXTRA_TITLE)
+            this@GridActivity.setSupportActionBar(this)
+            this@GridActivity.supportActionBar?.title = intent.getStringExtra(EXTRA_TITLE)
             setNavigationOnClickListener { finish() }
             setOnMenuItemClickListener { item ->
                 when (item.itemId) {
@@ -102,6 +114,16 @@ class GridActivity : AppCompatActivity() {
                             .show()
                         true
                     }
+                    R.id.filter_videos_switch -> {
+                        viewModel.showVideosOnly = !viewModel.showVideosOnly
+                        refreshData()
+                        true
+                    }
+                    R.id.reverse_order_switch -> {
+                        viewModel.ascendingOrder = !viewModel.ascendingOrder
+                        refreshData()
+                        true
+                    }
                     else -> false
                 }
             }
@@ -109,8 +131,12 @@ class GridActivity : AppCompatActivity() {
     }
 
     private fun refreshData() {
-        currentSource.removeObserver(onDataChanged)
-        currentSource = mediaGateway.getAllBySessionId(sessionId, viewModel.checkedLabels.toList()).apply {
+        currentSource?.removeObserver(onDataChanged)
+        currentSource = mediaGateway.getAllBySessionId(sessionId,
+            viewModel.checkedLabels.toList(),
+            viewModel.showVideosOnly,
+            viewModel.ascendingOrder
+        ).apply {
             observe(this@GridActivity, onDataChanged)
         }
     }
@@ -120,6 +146,8 @@ class GridActivity : AppCompatActivity() {
         val labelCountMap = hashMapOf<String, Int>()
         var sortedLabels: Array<String> = emptyArray()
         var checkedLabels = mutableSetOf<String>()
+        var showVideosOnly: Boolean = false
+        var ascendingOrder: Boolean = false
     }
 
     class GridAdapter: ListAdapter<Media, GridViewHolder>(Media.DIFF_CALLBACK) {

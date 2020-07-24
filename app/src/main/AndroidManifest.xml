@@ -22,6 +22,9 @@
         </activity>
         <activity android:name=".feature.grid.GridActivity" />
         <activity android:name=".feature.detail.DetailActivity" />
+        <activity android:name=".feature.detail.VideoActivity"
+            android:theme="@style/Theme.MaterialComponents.NoActionBar"
+            android:configChanges="screenSize|orientation" />
     </application>
 
 </manifest>

@@ -36,10 +36,28 @@
         android:id="@+id/progress"
         android:layout_width="24dp"
         android:layout_height="24dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/cancel_button"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+    <ImageView
+        android:id="@+id/cancel_button"
+        android:layout_width="64dp"
+        android:layout_height="match_parent"
         android:layout_marginEnd="16dp"
-        android:visibility="invisible"
+        android:padding="12dp"
+        android:src="@drawable/ic_cancel"
+        android:tint="#ccc"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent" />
+
+    <androidx.constraintlayout.widget.Group
+        android:id="@+id/progress_group"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="invisible"
+        app:constraint_referenced_ids="progress,cancel_button"
+        tools:visibility="visible" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

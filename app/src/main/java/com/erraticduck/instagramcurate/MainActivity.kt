@@ -57,12 +57,12 @@ class MainActivity : AppCompatActivity() {
             val subtitle = view.findViewById<TextView>(R.id.subtitle)
             title.text = session.name
             subtitle.text = "${view.context.getString(session.type.displayName)}  -  ${session.localCount} / ${session.remoteCount}"
-            view.findViewById<View>(R.id.progress).visibility = if (session.syncing) View.VISIBLE else View.INVISIBLE
+            view.findViewById<View>(R.id.progress_group).visibility = if (session.syncing) View.VISIBLE else View.INVISIBLE
             view.setOnLongClickListener {
                 MaterialAlertDialogBuilder(view.context)
                     .setMessage(view.context.getString(R.string.delete_question, session.name))
                     .setPositiveButton(R.string.delete) { _, _ ->
-                        WorkManager.getInstance(view.context).cancelAllWorkByTag(InstagramWorker.TAG)
+                        WorkManager.getInstance(view.context).cancelAllWorkByTag(InstagramWorker.getTagWithSessionId(session.id))
                         lifecycleScope.launch {
                             gateway.deleteSession(session.id)
                         }
@@ -70,6 +70,9 @@ class MainActivity : AppCompatActivity() {
                     .setNegativeButton(android.R.string.cancel) { _, _ -> }
                     .show()
                 true
+            }
+            view.findViewById<View>(R.id.cancel_button).setOnClickListener {
+                WorkManager.getInstance(view.context).cancelAllWorkByTag(InstagramWorker.getTagWithSessionId(session.id))
             }
             view.setOnClickListener { view.context.startActivity(GridActivity.newIntent(view.context, session.id, session.name)) }
         }
