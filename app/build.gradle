@@ -40,6 +40,7 @@ android {
 }
 
 dependencies {
+    def exoplayer_version = "2.11.7"
     def room_version = "2.2.5"
     def retrofit_version = "2.9.0"
 
@@ -57,6 +58,9 @@ dependencies {
     implementation "androidx.room:room-rxjava2:$room_version"
     implementation 'androidx.work:work-runtime-ktx:2.3.4'
     implementation 'com.google.android.material:material:1.1.0'
+    implementation "com.google.android.exoplayer:exoplayer-core:$exoplayer_version"
+    implementation "com.google.android.exoplayer:exoplayer-dash:$exoplayer_version"
+    implementation "com.google.android.exoplayer:exoplayer-ui:$exoplayer_version"
     implementation 'com.google.mlkit:image-labeling-custom:16.1.0'
 
     implementation 'com.github.bumptech.glide:glide:4.11.0'

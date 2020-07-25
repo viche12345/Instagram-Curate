@@ -50,7 +50,7 @@ class DetailActivity : AppCompatActivity() {
 
             if (media.isVideo) {
                 imageView.setOnClickListener {
-                    startActivity(VideoActivity.newIntent(this, media.shortcode))
+                    startActivity(VideoActivity.newIntent(this, media.shortcode, media.remoteId))
                 }
             }
         })

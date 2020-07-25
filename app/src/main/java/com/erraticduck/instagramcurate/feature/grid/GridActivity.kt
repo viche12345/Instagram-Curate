@@ -28,6 +28,8 @@ class GridActivity : AppCompatActivity() {
         get() = intent.getLongExtra(EXTRA_SESSION_ID, 0)
 
     private lateinit var viewModel: GridViewModel
+    private lateinit var grid: RecyclerView
+    private lateinit var gridLayoutManager: GridLayoutManager
     private val onDataChanged = Observer<List<Media>> { viewModel.media.value = it }
     private var currentSource: LiveData<List<Media>>? = null
 
@@ -67,9 +69,10 @@ class GridActivity : AppCompatActivity() {
         val adapter = GridAdapter()
         viewModel.media.observe(this, Observer { adapter.submitList(it) })
 
-        val grid = findViewById<RecyclerView>(R.id.grid)
+        grid = findViewById(R.id.grid)
         grid.adapter = adapter
-        grid.layoutManager = GridLayoutManager(this, 3)
+        gridLayoutManager = GridLayoutManager(this, 3, GridLayoutManager.VERTICAL, viewModel.ascendingOrder)
+        grid.layoutManager = gridLayoutManager
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -121,7 +124,8 @@ class GridActivity : AppCompatActivity() {
                     }
                     R.id.reverse_order_switch -> {
                         viewModel.ascendingOrder = !viewModel.ascendingOrder
-                        refreshData()
+                        grid.scrollToPosition(if (viewModel.ascendingOrder) (viewModel.media.value?.size ?: 1) - 1 else 0)
+                        gridLayoutManager.reverseLayout = viewModel.ascendingOrder
                         true
                     }
                     else -> false
@@ -134,8 +138,7 @@ class GridActivity : AppCompatActivity() {
         currentSource?.removeObserver(onDataChanged)
         currentSource = mediaGateway.getAllBySessionId(sessionId,
             viewModel.checkedLabels.toList(),
-            viewModel.showVideosOnly,
-            viewModel.ascendingOrder
+            viewModel.showVideosOnly
         ).apply {
             observe(this@GridActivity, onDataChanged)
         }

@@ -12,9 +12,8 @@ class MediaGateway(private val mediaEntityDao: MediaEntityDao) {
 
     fun getAllBySessionId(sessionId: Long,
                           filterByLabels: List<String> = emptyList(),
-                          showVideosOnly: Boolean = false,
-                          ascendingOrder: Boolean = false) =
-        Transformations.map(mediaEntityDao.getAllBySessionId(sessionId, filterByLabels, showVideosOnly, ascendingOrder)) {
+                          showVideosOnly: Boolean = false) =
+        Transformations.map(mediaEntityDao.getAllBySessionId(sessionId, filterByLabels, showVideosOnly)) {
         it.map { entity -> entity.toDomain() }
     }
 

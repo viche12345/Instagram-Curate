@@ -47,7 +47,10 @@ class InstagramAdapter(private val instagramService: InstagramService) {
             val shortcode = response.body()?.data?.shortcode
             Response.success(shortcode?.sidecarEdges?.edges?.let { edges ->
                 if (edges.isNotEmpty()) {
-                    edges.map { it.node.toDomain(shortcode.captionEdges.toCaptionString(), shortcode.timestamp) }
+                    edges.map { it.node.toDomain(
+                        shortcode.shortcode,
+                        shortcode.captionEdges.toCaptionString(),
+                        shortcode.timestamp) }
                 } else {
                     listOf(shortcode.toDomain())
                 }
@@ -57,11 +60,13 @@ class InstagramAdapter(private val instagramService: InstagramService) {
         }
     }
 
-    fun fetchVideoUrl(shortcode: String): Response<String> {
+    fun fetchVideoUrl(shortcode: String, remoteId: Long): Response<String> {
         val response = instagramService.fetchShortcode(shortcode).execute()
         return if (response.isSuccessful) {
             val responseShortcode = response.body()?.data?.shortcode
-            Response.success(responseShortcode?.videoUrl)
+            val videoUrl = responseShortcode?.sidecarEdges?.edges?.find { it.node.id == remoteId } ?.node?.videoUrl
+                ?: responseShortcode?.videoUrl
+            Response.success(videoUrl)
         } else {
             Response.error(response.code(), response.errorBody() ?: ResponseBody.create(null, ""))
         }
@@ -80,10 +85,12 @@ fun InstagramService.UserNode.toDomain() = MediaPage(id, username, thumbnailUrl,
     mediaEdges.pageInfo?.let { if (it.hasNextPage) it.endCursor else null }
 )
 
-fun InstagramService.MediaNode.toDomain(captionOverride: String? = null, timestampOverride: Long? = null) = Media(
+fun InstagramService.MediaNode.toDomain(shortcodeOverride: String? = null,
+                                        captionOverride: String? = null,
+                                        timestampOverride: Long? = null) = Media(
     0,
     id,
-    shortcode,
+    shortcodeOverride ?: shortcode,
     timestampOverride ?: timestamp,
     displayUrl,
     thumbnailUrl,

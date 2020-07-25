@@ -17,14 +17,11 @@ interface MediaEntityDao {
           AND _session_id=:id
           AND is_video <> CASE WHEN :videosOnly THEN 0 ELSE 2 END
         GROUP BY media._id
-        ORDER BY
-          CASE WHEN :ascendingOrder THEN created_at END ASC,
-          CASE WHEN NOT :ascendingOrder THEN created_at END DESC
+        ORDER BY created_at DESC
         """)
     fun getAllBySessionId(id: Long,
                           labelFilterBy: List<String>,
                           videosOnly: Boolean,
-                          ascendingOrder: Boolean,
                           labelFilterEnabled: Boolean = labelFilterBy.isNotEmpty()
     ): LiveData<List<MediaEntityWithLabels>>
 
