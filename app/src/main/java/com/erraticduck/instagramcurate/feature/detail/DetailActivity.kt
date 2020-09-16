@@ -3,6 +3,7 @@ package com.erraticduck.instagramcurate.feature.detail
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -52,6 +53,7 @@ class DetailActivity : AppCompatActivity() {
                 imageView.setOnClickListener {
                     startActivity(VideoActivity.newIntent(this, media.shortcode, media.remoteId))
                 }
+                findViewById<View>(R.id.icon_play).visibility = View.VISIBLE
             }
         })
     }
