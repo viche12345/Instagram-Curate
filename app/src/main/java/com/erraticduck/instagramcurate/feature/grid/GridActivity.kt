@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.*
 import androidx.lifecycle.Observer
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -153,7 +154,14 @@ class GridActivity : AppCompatActivity() {
         var ascendingOrder: Boolean = false
     }
 
-    class GridAdapter: ListAdapter<Media, GridViewHolder>(Media.DIFF_CALLBACK) {
+    class GridAdapter: ListAdapter<Media, GridViewHolder>(object : DiffUtil.ItemCallback<Media>() {
+        override fun areItemsTheSame(oldItem: Media, newItem: Media): Boolean =
+            oldItem.remoteId == newItem.remoteId
+
+        override fun areContentsTheSame(oldItem: Media, newItem: Media): Boolean =
+            oldItem == newItem
+
+    }) {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GridViewHolder =
             GridViewHolder.create(parent)
 

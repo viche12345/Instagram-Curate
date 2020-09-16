@@ -13,12 +13,8 @@ import androidx.work.*
 import com.bumptech.glide.Glide
 import com.erraticduck.instagramcurate.MainApplication
 import com.erraticduck.instagramcurate.R
-import com.erraticduck.instagramcurate.cloud.InstagramAdapter
-import com.erraticduck.instagramcurate.cloud.InstagramService
 import com.erraticduck.instagramcurate.domain.Label
 import com.erraticduck.instagramcurate.domain.Media
-import com.erraticduck.instagramcurate.domain.MediaPage
-import com.erraticduck.instagramcurate.domain.Session
 import com.erraticduck.instagramcurate.gateway.MediaGateway
 import com.erraticduck.instagramcurate.gateway.SessionGateway
 import com.google.mlkit.common.model.LocalModel
@@ -31,7 +27,7 @@ import java.io.IOException
 
 class InstagramWorker(private val context: Context, workerParams: WorkerParameters): Worker(context, workerParams) {
 
-    private val instagramAdapter by lazy { InstagramAdapter(InstagramService.create()) }
+    private val executor = InstagramExecutor()
     private val mediaGateway by lazy { MediaGateway(MainApplication.instance.searchSessionDatabase.mediaDao()) }
     private var notificationManager: NotificationManager? = context.getSystemService(NotificationManager::class.java)
     private val handler = Handler(Looper.getMainLooper())
@@ -47,31 +43,30 @@ class InstagramWorker(private val context: Context, workerParams: WorkerParamete
         setForegroundAsync(createForegroundInfo(session.name))
 
         val result = try {
-            var nextCursor: String? = null
-            do {
-                if (isStopped) break
-                val response = when (session.type) {
-                    Session.Type.HASHTAG -> instagramAdapter.fetchHashTag(session.name, nextCursor)
-                    Session.Type.PERSON -> instagramAdapter.fetchUser(session, nextCursor)
-                }
-                if (!response.isSuccessful) {
-                    val msg = "Error ${response.code()}: ${response.message()}"
-                    Log.e(TAG, msg)
-                    showToastOnMainThread(msg)
-                    return Result.failure()
-                }
+            val executorResult = executor.execute(session, object : InstagramExecutor.Callback {
+                override fun isStopped() = isStopped
 
-                val mediaPage = response.body()!!
-                nextCursor = mediaPage.nextCursor
-                mediaPage.totalCount?.let {
-                    if (it > 0) {
-                        sessionGateway.updateRemoteCount(sessionId, it)
+                override fun onRemoteCountDetermined(count: Int) = sessionGateway.updateRemoteCount(sessionId, count)
+
+                override fun onMediaProcessed(media: Media) {
+                    val id = mediaGateway.insert(media, sessionId)
+                    if (performMl) {
+                        performMl(media.copy(localId = id))
                     }
                 }
-                handlePage(mediaPage, sessionId, performMl)
-            } while (nextCursor != null)
 
-            Result.success()
+                override fun onError(code: Int, msg: String) {
+                    val log = "Error $code: $msg"
+                    Log.e(TAG, log)
+                    showToastOnMainThread(msg)
+                }
+
+            })
+
+            if (executorResult)
+                Result.success()
+            else
+                Result.failure()
         } catch (e: IOException) {
             Log.e(TAG, e.message, e)
             showToastOnMainThread(e.message ?: e.toString())
@@ -85,30 +80,6 @@ class InstagramWorker(private val context: Context, workerParams: WorkerParamete
         sessionGateway.updateSync(sessionId, false)
 
         return result
-    }
-
-    private fun handlePage(page: MediaPage, sessionId: Long, performMl: Boolean) {
-        for (media in page.media) {
-            if (isStopped) break
-
-            val toInsert = if (media.hasSidecar) {
-                val response = instagramAdapter.fetchShortcode(media.shortcode)
-                if (response.isSuccessful) {
-                    response.body() ?: listOf(media)
-                } else {
-                    listOf(media)
-                }
-            } else {
-                listOf(media)
-            }
-
-            toInsert.forEach {
-                val id = mediaGateway.insert(it, sessionId)
-                if (performMl) {
-                    performMl(it.copy(localId = id))
-                }
-            }
-        }
     }
 
     private fun performMl(media: Media) {

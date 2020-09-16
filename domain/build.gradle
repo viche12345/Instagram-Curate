@@ -1,0 +1,19 @@
+apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'java-library'
+apply plugin: 'kotlin'
+
+jar {
+    manifest {
+        attributes "Main-Class": "com.erraticduck.instagramcurate.Main"
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+
+    def retrofit_version = "2.9.0"
+
+    api "com.squareup.retrofit2:retrofit:$retrofit_version"
+    implementation "com.squareup.retrofit2:converter-gson:$retrofit_version"
+}

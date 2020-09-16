@@ -4,6 +4,7 @@ import com.erraticduck.instagramcurate.domain.MediaPage
 import com.erraticduck.instagramcurate.domain.Media
 import com.erraticduck.instagramcurate.domain.Session
 import okhttp3.ResponseBody
+import retrofit2.Call
 import retrofit2.Response
 import java.io.IOException
 
@@ -11,8 +12,8 @@ class InstagramAdapter(private val instagramService: InstagramService) {
 
     @Throws(IOException::class, RuntimeException::class)
     fun fetchHashTag(tag: String, next: String? = null): Response<MediaPage> {
-        val response = next?.let { instagramService.loadMoreHashTag(InstagramService.HashTagVariables(tag, it)) }?.execute()
-            ?: instagramService.fetchHashTag(tag).execute()
+        val response = next?.let { instagramService.loadMoreHashTag(InstagramService.HashTagVariables(tag, it)) }?.executeWithTimeoutRetry()
+            ?: instagramService.fetchHashTag(tag).executeWithTimeoutRetry()
         return if (response.isSuccessful) {
             Response.success(response.body()?.data?.hashtag?.toDomain())
         } else {
@@ -29,7 +30,7 @@ class InstagramAdapter(private val instagramService: InstagramService) {
                     it
                 )
             )
-        }?.execute() ?: instagramService.fetchUser(session.name).execute()
+        }?.executeWithTimeoutRetry() ?: instagramService.fetchUser(session.name).executeWithTimeoutRetry()
         return if (response.isSuccessful) {
             if (next == null) {
                 // First request
@@ -42,7 +43,7 @@ class InstagramAdapter(private val instagramService: InstagramService) {
     }
 
     fun fetchShortcode(code: String): Response<List<Media>> {
-        val response = instagramService.fetchShortcode(code).execute()
+        val response = instagramService.fetchShortcode(code).executeWithTimeoutRetry()
         return if (response.isSuccessful) {
             val shortcode = response.body()?.data?.shortcode
             Response.success(shortcode?.sidecarEdges?.edges?.let { edges ->
@@ -61,7 +62,7 @@ class InstagramAdapter(private val instagramService: InstagramService) {
     }
 
     fun fetchVideoUrl(shortcode: String, remoteId: Long): Response<String> {
-        val response = instagramService.fetchShortcode(shortcode).execute()
+        val response = instagramService.fetchShortcode(shortcode).executeWithTimeoutRetry()
         return if (response.isSuccessful) {
             val responseShortcode = response.body()?.data?.shortcode
             val videoUrl = responseShortcode?.sidecarEdges?.edges?.find { it.node.id == remoteId } ?.node?.videoUrl
@@ -101,3 +102,15 @@ fun InstagramService.MediaNode.toDomain(shortcodeOverride: String? = null,
 
 fun InstagramService.Edges<InstagramService.CaptionNode>?.toCaptionString() =
     if (this?.edges?.isNotEmpty() == true) edges[0].node.text else ""
+
+private fun <T> Call<T>.executeWithTimeoutRetry(): Response<T> {
+    lateinit var exception: IOException
+    for (i in 1..3) {
+        try {
+            return execute()
+        } catch (e: IOException) {
+            exception = e
+        }
+    }
+    throw exception
+}

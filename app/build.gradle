@@ -40,9 +40,10 @@ android {
 }
 
 dependencies {
+    implementation project(path: ':domain')
+
     def exoplayer_version = "2.11.7"
     def room_version = "2.2.5"
-    def retrofit_version = "2.9.0"
 
     implementation fileTree(dir: "libs", include: ["*.jar"])
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
@@ -64,10 +65,7 @@ dependencies {
     implementation 'com.google.mlkit:image-labeling-custom:16.1.0'
 
     implementation 'com.github.bumptech.glide:glide:4.11.0'
-    annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
-
-    implementation "com.squareup.retrofit2:retrofit:$retrofit_version"
-    implementation "com.squareup.retrofit2:converter-gson:$retrofit_version"
+    kapt 'com.github.bumptech.glide:compiler:4.11.0'
 
     implementation 'io.reactivex.rxjava2:rxjava:2.2.19'
     implementation 'io.reactivex.rxjava2:rxkotlin:2.4.0'

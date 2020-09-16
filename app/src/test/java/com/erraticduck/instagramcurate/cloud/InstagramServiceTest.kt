@@ -27,7 +27,7 @@ class InstagramServiceTest {
     private fun testByType(session: Session) {
         var nextCursor: String? = null
         var current = 0
-        var total: Long? = null
+        var total: Int? = null
         do {
             val response = when (session.type) {
                 Session.Type.HASHTAG -> instagramAdapter.fetchHashTag(session.name, nextCursor)

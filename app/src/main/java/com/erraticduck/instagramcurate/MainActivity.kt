@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.LifecycleCoroutineScope
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -39,7 +40,15 @@ class MainActivity : AppCompatActivity() {
         AddSessionFragment.show(supportFragmentManager)
     }
 
-    class SessionAdapter(private val lifecycleScope: LifecycleCoroutineScope) : ListAdapter<Session, SessionViewHolder>(Session.DIFF_CALLBACK) {
+    class SessionAdapter(private val lifecycleScope: LifecycleCoroutineScope)
+        : ListAdapter<Session, SessionViewHolder>(object : DiffUtil.ItemCallback<Session>() {
+        override fun areItemsTheSame(oldItem: Session, newItem: Session): Boolean =
+            oldItem.name == newItem.name
+
+        override fun areContentsTheSame(oldItem: Session, newItem: Session): Boolean =
+            oldItem == newItem
+    }) {
+
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SessionViewHolder =
             SessionViewHolder.create(parent, lifecycleScope)
 
@@ -56,7 +65,7 @@ class MainActivity : AppCompatActivity() {
             val title = view.findViewById<TextView>(R.id.title)
             val subtitle = view.findViewById<TextView>(R.id.subtitle)
             title.text = session.name
-            subtitle.text = "${view.context.getString(session.type.displayName)}  -  ${session.localCount} / ${session.remoteCount}"
+            subtitle.text = "${session.localCount} / ${session.remoteCount}"
             view.findViewById<View>(R.id.progress_group).visibility = if (session.syncing) View.VISIBLE else View.INVISIBLE
             view.setOnLongClickListener {
                 MaterialAlertDialogBuilder(view.context)
