@@ -70,7 +70,7 @@ class AddSessionFragment : BottomSheetDialogFragment() {
         return view
     }
 
-    private fun isSearchQueryValid() = searchQuery.text.matches(Regex("[a-z0-9_]+", RegexOption.IGNORE_CASE))
+    private fun isSearchQueryValid() = searchQuery.text.matches(Regex("[a-z0-9_.]+", RegexOption.IGNORE_CASE))
 
     private fun isValid() = isSearchQueryValid() && searchType.checkedRadioButtonId != -1
 
